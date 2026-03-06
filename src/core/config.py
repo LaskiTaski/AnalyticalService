@@ -15,8 +15,17 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        """Async URL for asyncpg — used by the app at runtime."""
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
+    @property
+    def database_url_sync(self) -> str:
+        """Sync URL for psycopg2 — used by Alembic migrations."""
+        return (
+            f"postgresql+psycopg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 
@@ -37,8 +46,8 @@ class Settings(BaseSettings):
     yookassa_provider_token: str = ""
 
     # --- MOEX Collector ---
-    collector_interval_seconds: int = 300  # 5 minutes
-    collector_boards: list[str] = ["TQCB", "TQOB", "TQIR"]  # corp, ofz, ifi
+    collector_interval_seconds: int = 300
+    collector_boards: list[str] = ["TQCB", "TQOB", "TQIR"]
 
     # --- API ---
     api_host: str = "0.0.0.0"
