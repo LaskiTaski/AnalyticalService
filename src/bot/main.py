@@ -30,10 +30,10 @@ async def main() -> None:
 
     bot = Bot(
         token=settings.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
     )
 
-    # TODO: replace MemoryStorage with RedisStorage in Phase 2
+    # TODO: replace MemoryStorage with RedisStorage later
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
     dp.include_router(router)
