@@ -19,6 +19,9 @@ venv/
 # Environment
 .env
 
+# Frontend node
+frontend/node_modules/*
+
 # Testing & Linting
 .mypy_cache/
 .pytest_cache/

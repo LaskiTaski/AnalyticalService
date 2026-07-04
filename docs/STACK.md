@@ -13,6 +13,7 @@
 | Логирование | **structlog** | Структурированные логи, JSON output для production |
 | HTTP клиент | **aiohttp** (MOEX), **httpx** (внутренний) | aiohttp — для потокового получения данных, httpx — для API-to-API |
 | Конфигурация | **pydantic-settings** | Типизированное чтение из .env |
+| Данные | **MOEX ISS** (котировки + description эмитентов) | Официальный бесплатный API без ключей; этапы 2-4 риск-сигналов добавят АКРА/Эксперт РА/e-disclosure/Федресурс/ГИР БО (см. docs/RISK_SIGNALS_PLAN.md) |
 
 ## Frontend
 

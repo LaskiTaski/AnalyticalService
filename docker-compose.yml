@@ -1,17 +1,17 @@
 services:
-  # --- Infrastructure ---
+  # --- Инфраструктура ---
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: bond_user
-      POSTGRES_PASSWORD: bond_pass
-      POSTGRES_DB: bond_screener
+      POSTGRES_USER: ${POSTGRES_USER:-bond_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bond_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-bond_screener}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bond_user -d bond_screener"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bond_user} -d ${POSTGRES_DB:-bond_screener}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -26,12 +26,12 @@ services:
       timeout: 3s
       retries: 5
 
-  # --- Application ---
-  collector:
+  # --- Миграции (одноразовый шаг перед стартом приложения) ---
+  migrations:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: python -m src.collector.main
+    command: alembic upgrade head
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
@@ -39,46 +39,77 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+    restart: "no"
 
+  # --- Приложение ---
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: python -m src.api.main
+    command: python -m backend.api.main
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
+      DEBUG: "false"
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
-  bot:
+  collector:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: python -m src.bot.main
+    # Бесконечный цикл: сбор с MOEX каждые COLLECTOR_INTERVAL_SECONDS (по умолчанию 300)
+    command: python -m backend.collector.main --loop
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
-      API_HOST: api
+      DEBUG: "false"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
     depends_on:
       api:
         condition: service_started
-      redis:
-        condition: service_healthy
     restart: unless-stopped
 
-  # --- Testing ---
+  # --- Демо-данные без доступа к MOEX (запуск: docker compose run --rm seed) ---
+  seed:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: python -m scripts.seed_demo_data
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    profiles:
+      - seed
+
+  # --- Тесты (запуск: docker compose --profile test up test) ---
   test:
     build:
       context: .

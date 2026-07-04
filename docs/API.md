@@ -26,8 +26,10 @@ Swagger UI: `http://localhost:8000/docs`
 | days_max | int | — | Макс. дней до погашения |
 | qualified | bool | — | false = только неквал., true = все |
 | list_level_max | int | — | Макс. уровень листинга (1-3) |
-| security_type | string | — | ofz / corp / muni |
+| security_type | string | — | Тип(ы) через запятую: ofz / corp / muni (напр. `corp,muni`) |
 | board_id | string | — | TQCB / TQOB / TQIR |
+| search | string | — | Поиск по названию / SECID / ISIN (подстрока, без учёта регистра) |
+| risk_only | bool | false | Только бумаги эмитентов, у которых есть риск-события |
 | sort_by | string | yield_at_prev_wa_price | Поле сортировки |
 | sort_order | string | desc | asc / desc |
 
@@ -61,6 +63,9 @@ Swagger UI: `http://localhost:8000/docs`
       "security_type": "corp",
       "duration": 420.5,
       "volume_today": 15000000.0,
+      "issuer_inn": "7707049388",
+      "risk_events_count": 0,
+      "has_severe_events": false,
       "updated_at": "2026-03-06T16:29:10"
     }
   ],
@@ -77,6 +82,53 @@ Swagger UI: `http://localhost:8000/docs`
 
 **Response (200):** Один объект Bond (как в items выше).
 **Response (404):** `{"detail": "Облигация {secid} не найдена"}`
+
+### GET /api/v1/issuers/{inn}
+
+Карточка эмитента (фича «Риск-сигналы», см. `docs/RISK_SIGNALS_PLAN.md`).
+
+**Response (200):**
+```json
+{
+  "inn": "7707049388",
+  "name": "Ростелеком ПАО",
+  "ogrn": null,
+  "okpo": "17514186",
+  "bonds_count": 12,
+  "events_count": 1
+}
+```
+**Response (404):** `{"detail": "Эмитент с ИНН {inn} не найден"}`
+
+Примечание: `name` на этапе 1 — эвристика из названия бумаги (обрезка серии выпуска); каноническое имя появится с подключением рейтинговых агентств.
+
+### GET /api/v1/issuers/{inn}/events
+
+Лента риск-событий эмитента, новые сверху.
+
+**Response (200):**
+```json
+{
+  "inn": "7707049388",
+  "total": 1,
+  "items": [
+    {
+      "id": 42,
+      "inn": "7707049388",
+      "type": "listing_downgrade",
+      "date": "2026-07-01",
+      "title": "Ростел1P2R: уровень листинга MOEX понижен 1 → 2",
+      "url": "https://www.moex.com/ru/issue.aspx?code=RU000A0EXAMPLE",
+      "source": "moex",
+      "secid": "RU000A0EXAMPLE"
+    }
+  ]
+}
+```
+
+**Типы событий (`type`):** `default`, `tech_default`, `bankruptcy_intent`, `listing_downgrade`, `listing_upgrade`, `state_support_request`, `offer`, `restructuring`. «Тяжёлые» (включают `has_severe_events` у бумаг): default, tech_default, bankruptcy_intent, restructuring.
+
+**Источники (`source`):** `moex` (этап 1); `acra`, `raexpert`, `e-disclosure`, `fedresurs` — этапы 2-3.
 
 ### GET /api/v1/stats/market-overview
 
@@ -136,4 +188,7 @@ Health check.
 | security_type | string? | Тип: ofz / corp / muni |
 | duration | float? | Дюрация |
 | volume_today | float? | Объём торгов за день (руб.) |
+| issuer_inn | string? | ИНН эмитента (NULL = ещё не обогащено коллектором) |
+| risk_events_count | int | Число риск-событий эмитента (агрегат, не хранится в bonds) |
+| has_severe_events | bool | Есть «тяжёлые» события эмитента (агрегат) |
 | updated_at | datetime | Время последнего обновления |

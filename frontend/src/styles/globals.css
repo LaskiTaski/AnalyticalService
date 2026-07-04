@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes drawerIn {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.drawer-in { animation: drawerIn 0.18s ease-out; }
+
+/* Попапы фильтров-чипсов в герое */
+@keyframes chipPop {
+  from { transform: translateY(-4px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.chip-pop { animation: chipPop 0.14s ease-out; }
+
+::selection { background: #e21b5a55; }
+
+/* Пульс скелетонов первой загрузки таблицы */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.skeleton { animation: skeletonPulse 1.4s ease-in-out infinite; }
+
+/* Тонкие скроллбары: полноэкранная таблица не должна выглядеть как iframe */
+* { scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { border-radius: 8px; background: rgba(128, 128, 128, 0.35); }
+*::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.55); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-in, .skeleton, .chip-pop { animation: none; }
+}
